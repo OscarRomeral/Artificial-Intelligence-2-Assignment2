@@ -1,9 +1,9 @@
 import argparse
+import math
 import os
 import string
-import math
-
 from enum import Enum
+
 
 class MessageType(Enum):
     REGULAR = 1,
@@ -80,7 +80,7 @@ class Bayespam():
             print("Error: directory %s should contain a folder named 'spam'." % path)
             exit()
 
-    def read_messages(self, message_type):
+    def read_messages(self, message_type, min_len):
         """
         Parse all messages in either the 'regular' or 'spam' directory. Each token is stored in the vocabulary,
         together with a frequency count of its occurrences in both message types.
@@ -115,7 +115,7 @@ class Bayespam():
                         token = token.replace("\n", "") 
                         token = token.replace("\t", "")
 
-                        if len(token) >= 4 and token.isalpha(): #and token.isalpha(): #using this conditional, the words with less than 4 carachters and not alphabetical strings (with numbers or punctuation) strings are not taken into account
+                        if len(token) >= min_len and token.isalpha():  # and token.isalpha(): #using this conditional, the words with less than 4 carachters and not alphabetical strings (with numbers or punctuation) strings are not taken into account
                             if token in self.vocab.keys():
                                 # If the token is already in the vocab, retrieve its counter
                                 counter = self.vocab[token]
@@ -131,7 +131,15 @@ class Bayespam():
                 print("Error while reading message %s: " % msg, e)
                 exit()
 
-    def read_test_message(self, msg, message_type):
+    def read_test_message(self, msg, min_len):
+        """
+        Parse all messages in either the 'regular' or 'spam' test directory. Each token is stored in test_word (only one
+        time if it is repeated)
+
+        :param msg: The message to be read
+        :param min_len: We use this parameter to set a minimum length for all bigrams
+        :return: None
+        """
         self.test_words = []
         try:
             # Make sure to use latin1 encoding, otherwise it will be unable to read some of the messages
@@ -151,7 +159,7 @@ class Bayespam():
                     token = token.replace("\n", "") 
                     token = token.replace("\t", "")
 
-                    if len(token) >= 4 and token.isalpha(): #and token.isalpha(): #using this conditional, the words with less than 4 carachters and not alphabetical strings (with numbers or punctuation) strings are not taken into account
+                    if len(token) >= min_len and token.isalpha():  # and token.isalpha(): #using this conditional, the words with less than 4 carachters and not alphabetical strings (with numbers or punctuation) strings are not taken into account
                         if token not in self.test_words:
                             self.test_words.append(token)
 
@@ -236,11 +244,19 @@ class Bayespam():
                 self.cond_likelihood_spam[word] = counter.counter_spam / self.n_words_spam
 
     def test_classification(self):
+        """
+        It compares (using the functions seen above) the probabilities to be spam or regular for each
+        message in the list.
+        Depending on which probability is higher it concludes which kind of message is each.
+
+        :return: None
+        """
         test_classification = {}
         number_incorrects = 0
         number_corrects = 0
         for msg in self.regular_list:
-            self.read_test_message(msg, MessageType.REGULAR)
+            # todo define 6 as general atribute
+            self.read_test_message(msg, 6)
             test_probabilities = self.posteriory_class_log_probabilities()
             if test_probabilities[0] > test_probabilities[1]:
                 test_classification[msg] = 'Regular'
@@ -259,7 +275,7 @@ class Bayespam():
         number_incorrects = 0
         number_corrects = 0
         for msg in self.spam_list:
-            self.read_test_message(msg, MessageType.SPAM)
+            self.read_test_message(msg, 6)
             test_probabilities = self.posteriory_class_log_probabilities()
             if test_probabilities[0] > test_probabilities[1]:
                 test_classification[msg] = 'Regular'
@@ -306,6 +322,12 @@ class Bayespam():
         return output
 
     def update_vocab(self, parameter):
+        """
+        It removes all bigrams from the dictionary that have a frequency lower than the parameter
+
+        :param parameter: all bigrams that appear less times than this parameter are deleted
+        :return:
+        """
         keys = self.vocab.keys()
         to_delete = []
         for key in keys:
@@ -314,6 +336,9 @@ class Bayespam():
         for key in to_delete:
             self.vocab.pop(key)
 
+
+    # We did the following function to compute the mean of the number of appearences of each bigram
+    # We removed the single bigrams and computed the mean of the rest of the bigrams
 """
     def calculate_mean(self):
         count = 0.00
@@ -345,16 +370,14 @@ def main():
     bayespam.list_dirs(train_path)
 
     # Parse the messages in the regular message directory
-    bayespam.read_messages(MessageType.REGULAR)
+    bayespam.read_messages(MessageType.REGULAR, 6)
     # Parse the messages in the spam message directory
-    bayespam.read_messages(MessageType.SPAM)
+    bayespam.read_messages(MessageType.SPAM, 6)
 
     bayespam.update_vocab(3)
 
     #bayespam.print_vocab()
     bayespam.write_vocab("vocab.txt")
-
-    # Exercise 2.1
 
     # Count the number of regular, spam and total messages
     bayespam.number_messages()
@@ -362,23 +385,17 @@ def main():
     # Compute the probability of having regular or spam messages in comparison with the total calculated before
     bayespam.probability_total()
 
-    # Exercise 2.2
-
     # Count the total number of words contained in regular mail
     bayespam.number_of_words()
 
     # Calculate the conditional likelihoods of every word
     bayespam.words_conditional_likelihoods()
 
-    # Exercise 3.1
-
     # Calculate the posteriory class probabilities given a new email 'msg'
     test_path = args.test_path
     bayespam.list_dirs(test_path)
 
     bayespam.test_classification()
-
-    # Calculate the mean of the appearences of each bigram
 
 
     print("N regular messages: ", bayespam.n_messages_regular)
@@ -387,7 +404,7 @@ def main():
     print("Probability of spam: ", bayespam.prob_spam)
     print("Number of words in regular mail: ", bayespam.n_words_regular)
     print("Number of words in spam mail: ", bayespam.n_words_spam)
-   # print("Mean: " + str(bayespam.calculate_mean()))
+   #print("Mean: " + str(bayespam.calculate_mean()))
 
 
     """

@@ -1,9 +1,9 @@
 import argparse
+import math
 import os
 import string
-import math
-
 from enum import Enum
+
 
 class MessageType(Enum):
     REGULAR = 1,
@@ -56,6 +56,7 @@ class Bayespam():
         """
         self.regular_list = None
         self.spam_list = None
+
         # Check if the directory containing the data exists
         if not os.path.exists(path):
             print("Error: directory %s does not exist." % path)
@@ -128,7 +129,14 @@ class Bayespam():
                 print("Error while reading message %s: " % msg, e)
                 exit()
 
-    def read_test_message(self, msg, message_type):
+    def read_test_message(self, msg):
+        """
+        Parse all messages in either the 'regular' or 'spam' test directory. Each token is stored in test_word (only one
+        time if it is repeated)
+
+        :param msg: The message to be read
+        :return: None
+        """
         self.test_words = []
         try:
             # Make sure to use latin1 encoding, otherwise it will be unable to read some of the messages
@@ -218,23 +226,33 @@ class Bayespam():
         Computes the conditional likelihoods for every word in each case (spam and regular)
         """
 
-        for word, counter in self.vocab.items(): # We itarate in the diccionari vocab to get all words and its counters
-            if counter.counter_regular == 0: # Check if the regular counter is 0 to avoid 0 probabilities (1 as a tuning parameter)
+        for word, counter in self.vocab.items(): # We itarate in the dictionary vocab to get all words and its counters
+            if counter.counter_regular == 0: # Check if the regular counter is 0 to avoid 0 probabilities (0.0001 as a tuning parameter)
                 self.cond_likelihood_regular[word] = self.tuning_parameter / self.n_words_regular 
             else:
                 self.cond_likelihood_regular[word] = counter.counter_regular / self.n_words_regular
             
-            if counter.counter_spam == 0: # Check if the spam counter is 0 to avoid 0 probabilities (1 as a tuning parameter)
+            if counter.counter_spam == 0: # Check if the spam counter is 0 to avoid 0 probabilities (0.0001 as a tuning parameter)
                 self.cond_likelihood_spam[word] = self.tuning_parameter / self.n_words_spam
             else:
                 self.cond_likelihood_spam[word] = counter.counter_spam / self.n_words_spam
 
     def test_classification(self):
+        """
+        It compares (using the functions seen above) the probabilities to be spam or regular for each
+        message in the list.
+        Depending on which probability is higher it concludes which kind of message is each.
+
+        :return: None
+        """
         test_classification = {}
         number_incorrects = 0
         number_corrects = 0
+
+        # Iterates through all messages in the regular messages list and computes and compares the log probabilities
+        # to conclude if each message is spam or not
         for msg in self.regular_list:
-            self.read_test_message(msg, MessageType.REGULAR)
+            self.read_test_message(msg)
             test_probabilities = self.posteriory_class_log_probabilities()
             if test_probabilities[0] > test_probabilities[1]:
                 test_classification[msg] = 'Regular'
@@ -249,11 +267,11 @@ class Bayespam():
         accuracy = number_corrects / (number_corrects + number_incorrects)
         print("Accuracy: {:.2f}" .format(accuracy))
 
-
+        # Iterates through all messages in the spam messages list and computes and compares the log probabilities
         number_incorrects = 0
         number_corrects = 0
         for msg in self.spam_list:
-            self.read_test_message(msg, MessageType.SPAM)
+            self.read_test_message(msg)
             test_probabilities = self.posteriory_class_log_probabilities()
             if test_probabilities[0] > test_probabilities[1]:
                 test_classification[msg] = 'Regular'
@@ -268,6 +286,7 @@ class Bayespam():
         accuracy = number_corrects / (number_corrects + number_incorrects)
         print("Accuracy: {:.2f}" .format(accuracy))
 
+        # Prints the whole classification
         for msg, clas in test_classification.items():
             print("%s : | Classification: %s" % (msg, clas))
             
@@ -277,7 +296,6 @@ class Bayespam():
         In this method, we compute the logProbabilities of the regular or spam messages conditioned by the message recieved,
         to classify later if rather the message is spam or regular
         """
-        #list = self.split_message(msg)
         sum1 = 0
         sum2 = 0
 
