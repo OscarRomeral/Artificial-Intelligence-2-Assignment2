@@ -255,7 +255,6 @@ class Bayespam():
         number_incorrects = 0
         number_corrects = 0
         for msg in self.regular_list:
-            # todo define 6 as general atribute
             self.read_test_message(msg, 6)
             test_probabilities = self.posteriory_class_log_probabilities()
             if test_probabilities[0] > test_probabilities[1]:
