@@ -225,12 +225,12 @@ class Bayespam():
         """
 
         for word, counter in self.vocab.items(): # We itarate in the diccionari vocab to get all words and its counters
-            if counter.counter_regular == 0: # Check if the regular counter is 0 to avoid 0 probabilities (1 as a tuning parameter)
+            if counter.counter_regular == 0: # Check if the regular counter is 0 to avoid 0 probabilities (0.0001 as a tuning parameter)
                 self.cond_likelihood_regular[word] = self.tuning_parameter / self.n_words_regular 
             else:
                 self.cond_likelihood_regular[word] = counter.counter_regular / self.n_words_regular
             
-            if counter.counter_spam == 0: # Check if the spam counter is 0 to avoid 0 probabilities (1 as a tuning parameter)
+            if counter.counter_spam == 0: # Check if the spam counter is 0 to avoid 0 probabilities (0.0001 as a tuning parameter)
                 self.cond_likelihood_spam[word] = self.tuning_parameter / self.n_words_spam
             else:
                 self.cond_likelihood_spam[word] = counter.counter_spam / self.n_words_spam
@@ -305,6 +305,26 @@ class Bayespam():
 
         return output
 
+    def update_vocab(self, parameter):
+        keys = self.vocab.keys()
+        to_delete = []
+        for key in keys:
+            if (self.vocab[key].counter_regular + self.vocab[key].counter_spam) < parameter:
+                to_delete.append(key)
+        for key in to_delete:
+            self.vocab.pop(key)
+
+"""
+    def calculate_mean(self):
+        count = 0.00
+        n_keys = 0
+        for key in self.vocab.keys():
+            if((self.vocab[key].counter_regular + self.vocab[key].counter_spam) != 1):
+                n_keys += 1
+                count = count + self.vocab[key].counter_regular + self.vocab[key].counter_spam
+        mean = count / n_keys
+        return mean 
+"""
 
 def main():
     # We require the file paths of the training and test sets as input arguments (in that order)
@@ -328,6 +348,8 @@ def main():
     bayespam.read_messages(MessageType.REGULAR)
     # Parse the messages in the spam message directory
     bayespam.read_messages(MessageType.SPAM)
+
+    bayespam.update_vocab(3)
 
     #bayespam.print_vocab()
     bayespam.write_vocab("vocab.txt")
@@ -356,6 +378,8 @@ def main():
 
     bayespam.test_classification()
 
+    # Calculate the mean of the appearences of each bigram
+
 
     print("N regular messages: ", bayespam.n_messages_regular)
     print("N spam messages: ", bayespam.n_messages_spam)
@@ -363,6 +387,8 @@ def main():
     print("Probability of spam: ", bayespam.prob_spam)
     print("Number of words in regular mail: ", bayespam.n_words_regular)
     print("Number of words in spam mail: ", bayespam.n_words_spam)
+   # print("Mean: " + str(bayespam.calculate_mean()))
+
 
     """
     Now, implement the follow code yourselves:
