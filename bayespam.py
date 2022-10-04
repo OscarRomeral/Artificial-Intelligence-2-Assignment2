@@ -2,7 +2,6 @@ import argparse
 import os
 import string
 import math
-import re
 
 from enum import Enum
 

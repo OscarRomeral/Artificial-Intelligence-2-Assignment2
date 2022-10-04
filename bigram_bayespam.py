@@ -105,9 +105,12 @@ class Bayespam():
                 for line in f:
                     # Split the string on the space character, resulting in a list of tokens
                     split_line = line.split(" ")
+                    bigrams_list = []
+                    for idx in range(len(split_line) - 1):
+                        bigrams_list.append(split_line[idx] + split_line[idx+1])
                     # Loop through the tokens
-                    for idx in range(len(split_line)):
-                        token = split_line[idx].lower()  #With the lower() function we convert the string to lowercase
+                    for idx in range(len(bigrams_list)):
+                        token = bigrams_list[idx].lower()  #With the lower() function we convert the string to lowercase
                         token = token.translate(str.maketrans('', '', string.punctuation)) #With these three lines of code we eliminate the punctuation
                         token = token.replace("\n", "") 
                         token = token.replace("\t", "")
@@ -138,9 +141,12 @@ class Bayespam():
             for line in f:
                 # Split the string on the space character, resulting in a list of tokens
                 split_line = line.split(" ")
+                bigrams_list = []
+                for idx in range(len(split_line) - 1):
+                    bigrams_list.append(split_line[idx] + split_line[idx+1])
                 # Loop through the tokens
-                for idx in range(len(split_line)):
-                    token = split_line[idx].lower()  #With the lower() function we convert the string to lowercase
+                for idx in range(len(bigrams_list)):
+                    token = bigrams_list[idx].lower()  #With the lower() function we convert the string to lowercase
                     token = token.translate(str.maketrans('', '', string.punctuation)) #With these three lines of code we eliminate the punctuation
                     token = token.replace("\n", "") 
                     token = token.replace("\t", "")
